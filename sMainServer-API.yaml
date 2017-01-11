@@ -1,0 +1,149 @@
+---
+swagger: '2.0'
+info:
+  version: 0.1.0
+  title: Smart House Main Server API
+  description: |
+    #### SH Main Server REST API
+    This API Is part of Smart House Main Server REST Calls. SmartHouse Main Server will receive events from different registered Gateways
+schemes:
+  - http
+# SH Main Server will have hardcoded IP to make easy discovery for Gateways. It will be: 192.168.0.222
+host: 192.168.0.222
+basePath: /
+paths:
+  /info:
+    get:
+      description: Get Main Server Info
+      responses:
+        200:
+          description: success
+          schema:
+            $ref: '#/definitions/MainServerInfo'
+  /gateways/{gatewayUid}:
+    post:
+      description: Register new Gateway (or initialize after system restart)
+      parameters:
+        - name: gatewayUid
+          in: path
+          type: string
+          description: Gateway Unique ID (see GatewayInfo.uid)
+          required: true
+        - name: gatewayInfo
+          in: body
+          description: Info on Gateway
+          schema:
+            $ref: '#/definitions/GatewayInfo'
+          required: true
+      responses:
+        200:
+          description: success
+  /gateways/{gatewayUid}/sensors/sys-event:
+    post:
+      description: Register system event happened with some of the Sensors (new added, communication lost, missing, poor communication, etc)
+      parameters:
+        - name: gatewayUid
+          in: path
+          type: string
+          description: Gateway Unique ID (see GatewayInfo.uid)
+          required: true
+        - name: sys-event
+          in: body
+          description: Sensors System Event occured
+          schema:
+            $ref: '#/definitions/SensorsActuatorsSystemEvent'
+          required: true
+      responses:
+        200:
+          description: success
+  /gateways/{gatewayUid}/sensors/{sensorId}/event:
+    post:
+      description: Register event happened on Sensor
+      parameters:
+        - name: gatewayUid
+          in: path
+          type: string
+          description: Gateway Unique ID (see GatewayInfo.uid)
+          required: true
+        - name: sensorId
+          in: path
+          type: integer
+          format: uint16
+          description: Sensor ID defined by Gateway
+          required: true
+        - name: event
+          in: body
+          description: Sensor Event occured
+          schema:
+            $ref: '#/definitions/SensorEvent'
+          required: true
+      responses:
+        200:
+          description: success
+  /gateways/{gatewayUid}/actuators/sys-event:
+    post:
+      description: Register system event happened with some of the Actuators (new added, communication lost, missing, poor communication, etc)
+      parameters:
+        - name: gatewayUid
+          in: path
+          type: string
+          description: Gateway Unique ID (see GatewayInfo.uid)
+          required: true
+        - name: sys-event
+          in: body
+          description: Actuators System Event occured
+          schema:
+            $ref: '#/definitions/SensorsActuatorsSystemEvent'
+          required: true
+      responses:
+        200:
+          description: success
+definitions:
+  MainServerInfo:
+    type: object
+    properties:
+      protocolVersionMajor:
+        type: string
+        description: major version of protocol (REST API) running on the Main Server (if different then on Gateway - then Gateway cannot communicate with this Main Server)
+      protocolVersionMinor:
+        type: string
+  GatewayInfo:
+    type: object
+    properties:
+      uid:
+        type: string
+        description: Unique ID of this Gateway defined by external unique ID chip, or hardcoded (and must be guaranteed to be unique)
+      ipAddress:
+        type: string
+        description: IPv4 address to access this Gateway
+      firmwareVersion:
+        type: string
+        description: version of firmware on Gateway
+  SensorsActuatorsSystemEvent:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: uint16
+        description: Sensor/Actuator ID defined by Gateway
+      state:
+        type: string
+        description: One of values NEW - new registered, never existed before; MISSING - lost and no communication established after default period
+      timestamp:
+        type: integer
+        format: int64
+        description: Timestamp when event occured (used in order to get real timestamp of event in case of communication failure)
+  SensorEvent:
+    type: object
+    properties:
+      value:
+        type: array
+        items:
+          type: integer
+          format: uint8
+        description: array of bytes (usually its single byte value)
+      timestamp:
+        type: integer
+        format: int64
+        description: Timestamp when event occured (used in order to get real timestamp of event in case of communication failure)
+    

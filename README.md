@@ -1,4 +1,6 @@
 # sGateway
 Simple Smart House Gateway
 
-Plus all documentation to API
+Documentation to API
+See yaml files below.
+In order to open them in HTML editor, use: http://editor.swagger.io/#/

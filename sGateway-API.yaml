@@ -1,0 +1,280 @@
+---
+swagger: '2.0'
+info:
+  version: 0.1.0
+  title: Smart House Gateway API
+  description: |
+    #### SH Gateway REST API
+    This API Is part of Gateway REST Calls. SmartHouse Server will call this Gateways' REST API to get info on its devices and sensors/actuators.
+    
+    #### Sensors Purpose Types
+    * button - button doesn't keep its state, it also can be sensor button, or it can be a reed switch. It also can be a many position button (when not pressed it is one position, when pressed - switches to another position, etc)
+    * switch - switch that maintains its state after switched. It also can be many positions switch
+    * voltage_gauge - represents voltage measured
+    * current_gauge - represents current measured
+    * light - measures light intensity
+    * water - measures presense of water (can have more then two states to more accurate measure water intensity and avoid false alarms - possible to adjust treshold)
+    * humidity / temperature / soil_resistance
+    * proximity / PIR
+    * position - represents position of rotating/sliding control (for example simple adjustable resistor). Can be used to controll dimmers, etc.
+    * keyboard
+    * ir_receiver / id_card / bar_code_scanner / etc - these are complex types of sensor 
+    
+    #### Actuators Purpose Types
+    * light_fixture - simply two states - on/off
+    * dimmed_light_fixture - dimmable bulb (possibility to control intensity of bulb)
+    * rgb_light_fixture - possibility to control color and intensity
+    * socket - to control socket
+    * relay - general power load
+    * fan
+    * led
+    * text_screen - ascii text screen, in hardwareConf is data about its resolution (how many characters and lines) and supported charset
+    
+schemes:
+  - http
+host: 192.168.0.101
+basePath: /
+paths:
+  /info:
+    get:
+      description: Get SH Gateway Info
+      responses:
+        200:
+          description: ok
+          schema:
+            $ref: '#/definitions/GatewayInfo'
+  /timestamp:
+    get:
+      description: Get current timestamp, 0 if not set yet by SH Main Server
+      responses:
+        200:
+          description: ok
+          schema:
+            $ref: '#/definitions/TimestampObj'
+    post:
+      description: Set timestamp (SH Main Server shall call this end point periodically to keep time on Gateway(s) more accurate and to initialize it after system restart)
+      parameters:
+        - name: timestamp
+          in: body
+          description: Timestamp to be set for this SH Gateway
+          schema:
+            $ref: '#/definitions/TimestampObj'
+          required: true
+      responses:
+        200:
+          description: ok
+  /actuators:
+    get:
+      description: Return list of registered Actuators for this Gateway
+      responses:
+        200:
+          description: ok
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ActuatorInfo'
+  /actuators/{actuatorId}:
+    get:
+      description: Get Actuator Info
+      parameters:
+        - name: actuatorId
+          in: path
+          type: integer
+          format: uint16
+          description: Actuator ID (defined by this Gateway)
+          required: true
+      responses:
+        200:
+          description: ok
+          schema:
+            $ref: '#/definitions/ActuatorInfo'
+    post:
+      description: Send new value for Actuator (Execute command on Actuator)
+      parameters:
+        - name: actuatorId
+          in: path
+          type: integer
+          format: uint16
+          description: Actuator ID (defined by this Gateway)
+          required: true
+        - name: value
+          in: body
+          description: Value to be set for Actuator (same as returned back in ActuatorInfo's state)
+          schema:
+            $ref: '#/definitions/ValueObj'
+          required: true
+      responses:
+        200:
+          description: succeeded
+  /actuators/{actuatorId}/conf:
+    post:
+      description: Set new configuration for Actuator
+      parameters:
+        - name: actuatorId
+          in: path
+          type: integer
+          format: uint16
+          description: Actuator ID (defined by this Gateway)
+          required: true
+        - name: conf
+          in: body
+          description: Configuration to be applied for Actuator (same as returned back in ActuatorInfo's configuration)
+          schema:
+            $ref: '#/definitions/SensorActuatorConfiguration'
+          required: true
+      responses:
+        200:
+          description: succeeded
+  /sensors:
+    get:
+      description: Return list of registered Sensors for this Gateway (with current states and configurations)
+      responses:
+        200:
+          description: ok
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/SensorInfo'
+  /sensors/{sensorId}:
+    get:
+      description: Get Sensor Info with current state and configuration
+      parameters:
+        - name: sensorId
+          in: path
+          type: integer
+          format: uint16
+          description: Sensor ID (defined by this Gateway)
+          required: true
+      responses:
+        200:
+          description: ok
+          schema:
+            $ref: '#/definitions/SensorInfo'
+  /sensors/{sensorId}/conf:
+    post:
+      description: Set new configuration for Sensor
+      parameters:
+        - name: sensorId
+          in: path
+          type: integer
+          format: uint16
+          description: Sensor ID (defined by this Gateway)
+          required: true
+        - name: conf
+          in: body
+          description: Configuration to be applied for Sensor (same as returned back in SensorInfo's configuration)
+          schema:
+            $ref: '#/definitions/SensorActuatorConfiguration'
+          required: true
+      responses:
+        200:
+          description: succeeded
+definitions:
+  TimestampObj:
+    type: object
+    properties:
+      timestamp:
+        type: integer
+        format: int64
+        description: Java specific timestamp (see Java doc)
+  ValueObj:
+    type: object
+    properties:
+      value:
+        type: array
+        items:
+          type: integer
+          format: uint8
+        description: array of bytes (usually its single byte value)
+  GatewayInfo:
+    type: object
+    properties:
+      uid:
+        type: string
+        description: Unique ID of this Gateway defined by external unique ID chip, or hardcoded (and must be guaranteed to be unique)
+      ipAddress:
+        type: string
+        description: IPv4 address to access this Gateway
+      firmwareVersion:
+        type: string
+        description: version of firmware on Gateway
+  ActuatorInfo:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: uint16
+        description: ID of this Actuator on Gateway
+      state:
+        $ref: '#/definitions/ActuatorState'
+      hardwareId:
+        type: string
+        description: Device hardware specific ID (if available)
+      hardwareType:
+        type: string
+        description: "Device Hardware type. One of supported hardware types
+          - PIN - has one of two states 0 - ON, 1 - OFF
+          - DAC - (DAC/PWM) has integer state from 0 to 255 for example"
+      hardwareSpec:
+        type: array
+        items:
+          type: integer
+          format: uint8
+        description: array of bytes that represents hardware specific configuration, for PWM it could be min and max possible values, or size of value type to be sent (order of bytes if not default one used, etc)
+      configuration:
+        $ref: '#/definitions/SensorActuatorConfiguration'
+  ActuatorState:
+    type: object
+    description: State of this Actuator (either last value set for this Actuator or initial value after system reset)
+    properties:
+      value:
+        type: array
+        items:
+          type: integer
+          format: uint8
+        description: array of bytes (usually its single byte value)
+  SensorInfo:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: uint16
+        description: ID of this Sensor on Gateway
+      state:
+        $ref: '#/definitions/SensorState'
+      hardwareId:
+        type: string
+        description: Device hardware specific ID (if available)
+      hardwareType:
+        type: string
+        description: "Device Hardware type. One of supported hardware types
+          - PIN - has one of two states 0 - ON, 1 - OFF
+          - ADC - has integer state from 0 to 255 for example"
+      hardwareSpec:
+        type: array
+        items:
+          type: integer
+          format: uint8
+        description: array of bytes that represents hardware specific configuration, for ADC it could be resolution and/or data type to used for value
+      configuration:
+        $ref: '#/definitions/SensorActuatorConfiguration'
+  SensorState:
+    type: object
+    description: State of this Sensor
+    properties:
+      value:
+        type: array
+        items:
+          type: integer
+          format: uint8
+        description: array of bytes (usually its single byte value)
+  SensorActuatorConfiguration:
+    type: object
+    description: Configuration of Sensor/Actuator to be applied. For example for Sensor it could be a resolution, a calibration, or a flag to enable events or disable and allow only pooling of values, etc. For Actuator it could be resolution, or different modes of operation, etc.
+    properties:
+      configuration:
+        type: array
+        items:
+          type: integer
+          format: uint8
+        description: array of bytes (usually its single byte value) This is Sensor specific and depends on sensor HardwareSpec
