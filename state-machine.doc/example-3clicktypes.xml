@@ -1,0 +1,52 @@
+<state-machine name="clicks_0134_Handler" initial-state="start" singleton="true">
+  <state name="start" description="Initial state of this state machine, from here events to be received in order to instantiate this machine">
+
+    <!-- rule is verified when entering into this state -->
+    <!-- expression is calculated against system environment and its values, when expression returns true - rule is being followed -->
+    <rule expression="" goto="" />
+	<!-- NOTE: having rule for initial-state should be prohibited, due to uncertainty when to check it - on system start, or with some interval -->
+
+    <!-- expression is calculated against event value, when expression returns true - event is accepted -->
+    <!-- goto - which state to switch to when expression returns true -->
+    <event name="click_0134" expression="" goto="click1_received" />
+
+  </state>
+
+  <state name="click1_received" description="we recived first click">
+    <!-- this timer will be canceled as soon this state is being changed for this state machine -->
+    <timer name="click1_timer" description="" timeout="200ms" goto="single_click_event"/>
+
+    <event name="click_0134" goto="click2_received" />
+  </state>
+
+  <state name="single_click_event" description="we received single click event"
+	     terminal="true"> <!-- if terminal==true - this state is final step in this state machine -->
+    <action>
+      <!-- this action will generate system wide event which can be handled by other state machine -->
+      <generate_event name="click_0134_processed">
+        <value name="clicksCount" type="int">1</value>
+      </generate_event>
+    </action>
+  </state>
+
+  <state name="click2_received" description="we recived second click">
+    <timer name="click2_timer" timeout="200ms" goto="double_click_event"/>
+    <event name="click_0134" goto="click3_received" />
+  </state>
+
+  <state name="double_click_event" description="we received double click event" terminal="true">
+    <action>
+      <generate_event name="click_0134_processed">
+        <value name="clicksCount" type="int">2</value>
+      </generate_event>
+    </action>
+  </state>
+
+  <state name="click3_received" description="we received third click" terminal="true">
+    <action>
+      <generate_event name="click_0134_processed">
+        <value name="clicksCount" type="int">3</value>
+      </generate_event>
+    </action>
+  </state>
+</state-machine>
